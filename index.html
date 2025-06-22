@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planilha de Controle Financeiro Familiar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-button.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .tab-button {
+            border-bottom-color: transparent;
+        }
+        .form-modal {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div id="app" class="max-w-7xl mx-auto p-4">
+
+        <!-- Header e Navegação -->
+        <header class="bg-white rounded-lg shadow-md p-4 mb-6">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 text-center">Controle Financeiro Familiar</h1>
+            <p class="text-center text-gray-500 mt-1">Sua vida financeira organizada em um só lugar.</p>
+            <nav class="mt-4 border-b border-gray-200">
+                <div class="flex flex-wrap -mb-px justify-center" id="tabs-container">
+                    <button data-tab="dashboard" class="tab-button text-sm sm:text-base p-4 border-b-2 font-medium">
+                        <i class="fas fa-chart-pie mr-2"></i>Dashboard
+                    </button>
+                    <button data-tab="receitas" class="tab-button text-sm sm:text-base p-4 border-b-2 font-medium">
+                        <i class="fas fa-arrow-up mr-2 text-green-500"></i>Receitas
+                    </button>
+                    <button data-tab="despesas-fixas" class="tab-button text-sm sm:text-base p-4 border-b-2 font-medium">
+                        <i class="fas fa-lock mr-2 text-red-500"></i>Despesas Fixas
+                    </button>
+                    <button data-tab="despesas-variaveis" class="tab-button text-sm sm:text-base p-4 border-b-2 font-medium">
+                        <i class="fas fa-shopping-cart mr-2 text-orange-500"></i>Despesas Variáveis
+                    </button>
+                    <button data-tab="configuracoes" class="tab-button text-sm sm:text-base p-4 border-b-2 font-medium">
+                        <i class="fas fa-cog mr-2"></i>Configurações
+                    </button>
+                </div>
+            </nav>
+        </header>
+
+        <!-- Conteúdo das Abas -->
+        <main id="tab-content" class="space-y-6">
+            <!-- Dashboard -->
+            <div id="dashboard-tab" class="tab-pane hidden">
+                <!-- Filtros -->
+                <div class="bg-white p-4 rounded-lg shadow-md mb-6 flex flex-wrap gap-4 items-center justify-center">
+                     <div class="flex-grow sm:flex-grow-0">
+                        <label for="dashboard-month" class="block text-sm font-medium text-gray-700">Mês</label>
+                        <select id="dashboard-month" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"></select>
+                    </div>
+                    <div class="flex-grow sm:flex-grow-0">
+                        <label for="dashboard-year" class="block text-sm font-medium text-gray-700">Ano</label>
+                        <select id="dashboard-year" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"></select>
+                    </div>
+                </div>
+
+                <!-- Resumo -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="bg-green-100 p-6 rounded-lg shadow-lg text-center">
+                        <h3 class="text-lg font-semibold text-green-800">Receita Total</h3>
+                        <p id="total-receitas" class="text-3xl font-bold text-green-600 mt-2">R$ 0,00</p>
+                    </div>
+                    <div class="bg-red-100 p-6 rounded-lg shadow-lg text-center">
+                        <h3 class="text-lg font-semibold text-red-800">Despesa Total</h3>
+                        <p id="total-despesas" class="text-3xl font-bold text-red-600 mt-2">R$ 0,00</p>
+                    </div>
+                    <div id="saldo-card" class="bg-blue-100 p-6 rounded-lg shadow-lg text-center">
+                        <h3 class="text-lg font-semibold text-blue-800">Saldo do Mês</h3>
+                        <p id="saldo-mes" class="text-3xl font-bold text-blue-600 mt-2">R$ 0,00</p>
+                        <p id="status-financeiro" class="mt-2 font-medium"></p>
+                    </div>
+                </div>
+
+                <!-- Gráficos -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <h3 class="text-lg font-semibold text-center mb-4">Despesas por Categoria</h3>
+                        <div class="h-80 w-full flex items-center justify-center">
+                            <canvas id="despesas-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg shadow-md">
+                        <h3 class="text-lg font-semibold text-center mb-4">Receitas vs Despesas (Anual)</h3>
+                        <div class="h-80 w-full flex items-center justify-center">
+                             <canvas id="anual-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Receitas -->
+            <div id="receitas-tab" class="tab-pane hidden">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">Receitas</h2>
+                        <button id="add-receita-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition-colors"><i class="fas fa-plus mr-2"></i>Adicionar Receita</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="py-3 px-4 text-left">Data</th>
+                                    <th class="py-3 px-4 text-left">Descrição</th>
+                                    <th class="py-3 px-4 text-left">Categoria</th>
+                                    <th class="py-3 px-4 text-right">Valor</th>
+                                    <th class="py-3 px-4 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="receitas-table-body" class="divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Despesas Fixas -->
+            <div id="despesas-fixas-tab" class="tab-pane hidden">
+                 <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">Despesas Fixas</h2>
+                        <button id="add-despesa-fixa-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition-colors"><i class="fas fa-plus mr-2"></i>Adicionar Despesa Fixa</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="py-3 px-4 text-left">Vencimento</th>
+                                    <th class="py-3 px-4 text-left">Descrição</th>
+                                    <th class="py-3 px-4 text-left">Categoria</th>
+                                    <th class="py-3 px-4 text-right">Valor</th>
+                                    <th class="py-3 px-4 text-center">Status</th>
+                                    <th class="py-3 px-4 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="despesas-fixas-table-body" class="divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Despesas Variáveis -->
+            <div id="despesas-variaveis-tab" class="tab-pane hidden">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">Despesas Variáveis</h2>
+                        <button id="add-despesa-variavel-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition-colors"><i class="fas fa-plus mr-2"></i>Adicionar Despesa Variável</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="py-3 px-4 text-left">Data</th>
+                                    <th class="py-3 px-4 text-left">Descrição</th>
+                                    <th class="py-3 px-4 text-left">Categoria</th>
+                                    <th class="py-3 px-4 text-right">Valor</th>
+                                    <th class="py-3 px-4 text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="despesas-variaveis-table-body" class="divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configurações -->
+            <div id="configuracoes-tab" class="tab-pane hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Colunas de Configuração -->
+                <div class="bg-white p-6 rounded-lg shadow-md" data-config-type="incomeCategories" data-config-title="Categorias de Receita"></div>
+                <div class="bg-white p-6 rounded-lg shadow-md" data-config-type="expenseCategories" data-config-title="Categorias de Despesa"></div>
+                <div class="bg-white p-6 rounded-lg shadow-md" data-config-type="familyMembers" data-config-title="Membros da Família"></div>
+                <div class="bg-white p-6 rounded-lg shadow-md" data-config-type="accounts" data-config-title="Contas/Bancos"></div>
+                <div class="bg-white p-6 rounded-lg shadow-md" data-config-type="cards" data-config-title="Cartões de Crédito"></div>
+                 <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold mb-4">Gerenciar Dados</h3>
+                    <p class="text-gray-600 text-sm mb-4">Os dados são salvos localmente no seu navegador. Use os botões abaixo para exportar ou apagar seus dados.</p>
+                    <button id="export-data-btn" class="w-full mb-2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition-colors">
+                        <i class="fas fa-download mr-2"></i>Exportar Dados
+                    </button>
+                    <button id="delete-all-data-btn" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition-colors">
+                        <i class="fas fa-trash-alt mr-2"></i>Apagar Todos os Dados
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Genérico -->
+    <div id="form-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg form-modal">
+            <div class="p-6 border-b">
+                <h3 id="modal-title" class="text-xl font-bold">Adicionar Item</h3>
+            </div>
+            <form id="modal-form" class="p-6 space-y-4">
+                <!-- Conteúdo do formulário será injetado aqui -->
+            </form>
+            <div class="p-4 bg-gray-50 border-t flex justify-end gap-3">
+                 <button type="button" id="modal-cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors">Cancelar</button>
+                 <button type="submit" id="modal-save-btn" form="modal-form" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">Salvar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Confirmação -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm">
+            <div class="p-6 text-center">
+                <i class="fas fa-exclamation-triangle text-4xl text-yellow-500 mb-4"></i>
+                <h3 id="confirm-title" class="text-lg font-bold mb-2">Confirmar Ação</h3>
+                <p id="confirm-message" class="text-gray-600">Você tem certeza?</p>
+            </div>
+            <div class="p-4 bg-gray-50 flex justify-center gap-4">
+                <button id="confirm-cancel-btn" class="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300">Cancelar</button>
+                <button id="confirm-ok-btn" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Início da Lógica da Aplicação (usando localStorage) ---
+        
+        const DB_KEY = 'familyFinanceApp_data';
+
+        let state = {
+            settings: {
+                incomeCategories: [], expenseCategories: [], familyMembers: [], accounts: [], cards: []
+            },
+            income: [],
+            fixedExpenses: [],
+            variableExpenses: [],
+        };
+
+        let despesasChartInstance = null;
+        let anualChartInstance = null;
+
+        // --- Gerenciamento de Dados (localStorage) ---
+
+        function loadStateFromStorage() {
+            const data = localStorage.getItem(DB_KEY);
+            if (data) {
+                state = JSON.parse(data);
+            } else {
+                // Se não existe, define dados padrão
+                state = {
+                    settings: {
+                        incomeCategories: ['Salário', 'Freelance', 'Vendas'],
+                        expenseCategories: ['Moradia', 'Alimentação', 'Transporte', 'Lazer', 'Saúde'],
+                        familyMembers: ['Membro 1'],
+                        accounts: ['Banco Principal', 'Carteira'],
+                        cards: ['Cartão Principal']
+                    },
+                    income: [],
+                    fixedExpenses: [],
+                    variableExpenses: [],
+                };
+                saveStateToStorage();
+            }
+        }
+        
+        function saveStateToStorage() {
+            localStorage.setItem(DB_KEY, JSON.stringify(state));
+        }
+        
+        function updateAndSave() {
+            saveStateToStorage();
+            renderAll();
+        }
+        
+        function renderAll() {
+            renderTable('receitas', state.income, generateReceitaRow);
+            renderTable('despesas-fixas', state.fixedExpenses, generateDespesaFixaRow);
+            renderTable('despesas-variaveis', state.variableExpenses, generateDespesaVariavelRow);
+            renderSettings();
+            renderDashboard();
+        }
+
+        // --- Renderização da UI ---
+        
+        function renderTable(tableId, data, rowGenerator) {
+            const tableBody = document.getElementById(`${tableId}-table-body`);
+            if (!tableBody) return;
+            tableBody.innerHTML = '';
+            // Ordenar por data (mais recente primeiro)
+            const sortedData = [...data].sort((a, b) => {
+                const dateA = new Date(a.date || a.dueDate);
+                const dateB = new Date(b.date || b.dueDate);
+                return dateB - dateA;
+            });
+            sortedData.forEach(item => {
+                tableBody.innerHTML += rowGenerator(item);
+            });
+            
+            // Adicionar event listeners para os novos botões
+            tableBody.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                   openConfirmModal('Tem certeza que deseja excluir este item?', () => {
+                        const { id, type } = btn.dataset;
+                        deleteItem(id, type);
+                    });
+                });
+            });
+
+            tableBody.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const { id, type } = btn.dataset;
+                    const item = state[type].find(i => i.id === id);
+                    if (item) {
+                        openFormModal(type, item);
+                    }
+                });
+            });
+
+            tableBody.querySelectorAll('.status-toggle').forEach(toggle => {
+                toggle.addEventListener('click', () => {
+                    const { id } = toggle.dataset;
+                    const item = state.fixedExpenses.find(i => i.id === id);
+                    if (item) {
+                        item.status = item.status === 'Pago' ? 'A Pagar' : 'Pago';
+                        updateAndSave();
+                    }
+                });
+            });
+        }
+
+        function generateReceitaRow(item) {
+            return `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-3 px-4">${formatDate(item.date)}</td>
+                    <td class="py-3 px-4">${item.description}</td>
+                    <td class="py-3 px-4"><span class="px-2 py-1 bg-gray-200 text-gray-700 text-xs font-medium rounded-full">${item.category}</span></td>
+                    <td class="py-3 px-4 text-right font-medium text-green-600">${formatCurrency(item.amount)}</td>
+                    <td class="py-3 px-4 text-center space-x-2">
+                        <button class="edit-btn text-blue-500 hover:text-blue-700" data-id="${item.id}" data-type="income"><i class="fas fa-pencil-alt"></i></button>
+                        <button class="delete-btn text-red-500 hover:text-red-700" data-id="${item.id}" data-type="income"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function generateDespesaFixaRow(item) {
+            const statusClass = item.status === 'Pago' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+            const statusIcon = item.status === 'Pago' ? 'fa-check-circle' : 'fa-hourglass-half';
+            return `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-3 px-4">${formatDate(item.dueDate)}</td>
+                    <td class="py-3 px-4">${item.description}</td>
+                    <td class="py-3 px-4"><span class="px-2 py-1 bg-gray-200 text-gray-700 text-xs font-medium rounded-full">${item.category}</span></td>
+                    <td class="py-3 px-4 text-right font-medium text-red-600">${formatCurrency(item.amount)}</td>
+                    <td class="py-3 px-4 text-center">
+                        <button class="status-toggle px-3 py-1 text-sm font-semibold rounded-full ${statusClass}" data-id="${item.id}">
+                            <i class="fas ${statusIcon} mr-1"></i>${item.status}
+                        </button>
+                    </td>
+                    <td class="py-3 px-4 text-center space-x-2">
+                        <button class="edit-btn text-blue-500 hover:text-blue-700" data-id="${item.id}" data-type="fixedExpenses"><i class="fas fa-pencil-alt"></i></button>
+                        <button class="delete-btn text-red-500 hover:text-red-700" data-id="${item.id}" data-type="fixedExpenses"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        }
+        
+        function generateDespesaVariavelRow(item) {
+             return `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-3 px-4">${formatDate(item.date)}</td>
+                    <td class="py-3 px-4">${item.description}</td>
+                    <td class="py-3 px-4"><span class="px-2 py-1 bg-gray-200 text-gray-700 text-xs font-medium rounded-full">${item.category}</span></td>
+                    <td class="py-3 px-4 text-right font-medium text-orange-600">${formatCurrency(item.amount)}</td>
+                    <td class="py-3 px-4 text-center space-x-2">
+                        <button class="edit-btn text-blue-500 hover:text-blue-700" data-id="${item.id}" data-type="variableExpenses"><i class="fas fa-pencil-alt"></i></button>
+                        <button class="delete-btn text-red-500 hover:text-red-700" data-id="${item.id}" data-type="variableExpenses"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function renderSettings() {
+            const container = document.getElementById('configuracoes-tab');
+            container.querySelectorAll('[data-config-type]').forEach(el => {
+                const type = el.dataset.configType;
+                const title = el.dataset.configTitle;
+                const items = state.settings[type] || [];
+
+                let itemsHtml = items.map(item => `
+                    <li class="flex justify-between items-center py-2 border-b">
+                        <span>${item}</span>
+                        <button class="delete-setting-item-btn text-red-500 hover:text-red-700" data-type="${type}" data-item="${item}"><i class="fas fa-times"></i></button>
+                    </li>
+                `).join('');
+
+                el.innerHTML = `
+                    <h3 class="text-lg font-bold mb-4">${title}</h3>
+                    <ul class="mb-4">${itemsHtml}</ul>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-${type}-input" placeholder="Novo item..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500">
+                        <button class="add-setting-item-btn bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600" data-type="${type}">Add</button>
+                    </div>
+                `;
+            });
+            
+            attachSettingsEventListeners();
+        }
+
+        // --- Lógica do Dashboard ---
+        function renderDashboard() {
+            if (document.getElementById('dashboard-tab').classList.contains('hidden')) return;
+
+            const month = parseInt(document.getElementById('dashboard-month').value);
+            const year = parseInt(document.getElementById('dashboard-year').value);
+            
+            if (isNaN(month) || isNaN(year)) return;
+
+            // Filtrar dados para o mês e ano selecionados
+            const receitasMes = state.income.filter(i => {
+                const d = new Date(i.date + 'T00:00:00');
+                return d.getMonth() + 1 === month && d.getFullYear() === year;
+            });
+            const despesasFixasMes = state.fixedExpenses.filter(d => {
+                const date = new Date(d.dueDate + 'T00:00:00');
+                return d.status === 'Pago' && date.getMonth() + 1 === month && date.getFullYear() === year;
+            });
+             const despesasVariaveisMes = state.variableExpenses.filter(d => {
+                const date = new Date(d.date + 'T00:00:00');
+                return date.getMonth() + 1 === month && date.getFullYear() === year;
+            });
+
+            const totalReceitas = receitasMes.reduce((sum, item) => sum + item.amount, 0);
+            const totalDespesasFixas = despesasFixasMes.reduce((sum, item) => sum + item.amount, 0);
+            const totalDespesasVariaveis = despesasVariaveisMes.reduce((sum, item) => sum + item.amount, 0);
+            const totalDespesas = totalDespesasFixas + totalDespesasVariaveis;
+            const saldoMes = totalReceitas - totalDespesas;
+            
+            document.getElementById('total-receitas').textContent = formatCurrency(totalReceitas);
+            document.getElementById('total-despesas').textContent = formatCurrency(totalDespesas);
+            document.getElementById('saldo-mes').textContent = formatCurrency(saldoMes);
+            
+            const statusEl = document.getElementById('status-financeiro');
+            const saldoCard = document.getElementById('saldo-card');
+            if (saldoMes >= 0) {
+                statusEl.textContent = 'SAUDÁVEL';
+                statusEl.className = 'mt-2 font-medium text-green-700';
+                saldoCard.classList.remove('bg-red-200');
+                saldoCard.classList.add('bg-blue-100');
+            } else {
+                statusEl.textContent = 'ATENÇÃO: DÉFICIT';
+                statusEl.className = 'mt-2 font-medium text-red-700';
+                saldoCard.classList.remove('bg-blue-100');
+                saldoCard.classList.add('bg-red-200');
+            }
+
+            renderDespesasChart(despesasFixasMes, despesasVariaveisMes);
+            renderAnualChart(year);
+        }
+        
+        function renderDespesasChart(fixas, variaveis) {
+            const ctx = document.getElementById('despesas-chart').getContext('2d');
+            const allDespesas = [...fixas, ...variaveis];
+            
+            const dataByCategory = allDespesas.reduce((acc, item) => {
+                acc[item.category] = (acc[item.category] || 0) + item.amount;
+                return acc;
+            }, {});
+
+            const labels = Object.keys(dataByCategory);
+            const data = Object.values(dataByCategory);
+            
+            if (despesasChartInstance) despesasChartInstance.destroy();
+            
+            if (labels.length === 0) {
+                 ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                 ctx.font = "16px Inter";
+                 ctx.fillStyle = "#6b7280";
+                 ctx.textAlign = "center";
+                 ctx.fillText("Sem dados de despesa para este mês.", ctx.canvas.width / 2, ctx.canvas.height / 2);
+                 return;
+            }
+
+            despesasChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Despesas por Categoria',
+                        data: data,
+                        backgroundColor: ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: (c) => `${c.label}: ${formatCurrency(c.raw)}` } } }
+                }
+            });
+        }
+        
+        function renderAnualChart(year) {
+            const ctx = document.getElementById('anual-chart').getContext('2d');
+            const labels = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            const receitasData = Array(12).fill(0);
+            const despesasData = Array(12).fill(0);
+            
+            state.income.forEach(item => {
+                const d = new Date(item.date + 'T00:00:00');
+                if (d.getFullYear() === year) receitasData[d.getMonth()] += item.amount;
+            });
+            
+            [...state.fixedExpenses, ...state.variableExpenses].forEach(item => {
+                const dateKey = item.dueDate ? 'dueDate' : 'date';
+                if(item.status !== 'A Pagar'){
+                    const d = new Date(item[dateKey] + 'T00:00:00');
+                    if(d.getFullYear() === year) despesasData[d.getMonth()] += item.amount;
+                }
+            });
+
+             if (anualChartInstance) anualChartInstance.destroy();
+
+            anualChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Receitas', data: receitasData, backgroundColor: 'rgba(34, 197, 94, 0.6)', borderColor: 'rgba(34, 197, 94, 1)', borderWidth: 1 },
+                        { label: 'Despesas', data: despesasData, backgroundColor: 'rgba(239, 68, 68, 0.6)', borderColor: 'rgba(239, 68, 68, 1)', borderWidth: 1 }
+                    ]
+                },
+                options: {
+                     responsive: true, maintainAspectRatio: false,
+                     scales: { y: { beginAtZero: true, ticks: { callback: value => formatCurrency(value) } } },
+                     plugins: { tooltip: { callbacks: { label: context => `${context.dataset.label}: ${formatCurrency(context.raw)}` } } }
+                }
+            });
+        }
+
+        // --- Lógica de CRUD (Agora no state) ---
+        function saveItem(type, data) {
+            const { id, ...itemData } = data;
+            
+            if (id) { // Edição
+                const itemIndex = state[type].findIndex(i => i.id === id);
+                if(itemIndex > -1) state[type][itemIndex] = { ...state[type][itemIndex], ...itemData };
+            } else { // Novo item
+                itemData.id = `id_${new Date().getTime()}`; // ID único simples
+                state[type].push(itemData);
+            }
+            closeModal();
+            updateAndSave();
+        }
+
+        function deleteItem(id, type) {
+            state[type] = state[type].filter(i => i.id !== id);
+            updateAndSave();
+        }
+        
+        function updateSettingsList(type, newList) {
+            state.settings[type] = newList;
+            updateAndSave();
+        }
+        
+        // --- Modais ---
+        const modal = document.getElementById('form-modal');
+        const modalForm = document.getElementById('modal-form');
+        
+        function openFormModal(type, item = null) {
+            modalForm.reset();
+            modalForm.dataset.type = type;
+            modalForm.dataset.id = item ? item.id : '';
+            
+            let formContent = '';
+            let title = '';
+            
+            const incomeCategoriesOptions = state.settings.incomeCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+            const expenseCategoriesOptions = state.settings.expenseCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+            const accountsOptions = state.settings.accounts.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            switch(type) {
+                case 'income':
+                    title = item ? 'Editar Receita' : 'Adicionar Receita';
+                    formContent = `
+                        <div><label class="block text-sm font-medium">Data</label><input type="date" name="date" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required value="${item?.date || new Date().toISOString().split('T')[0]}"></div>
+                        <div><label class="block text-sm font-medium">Descrição</label><input type="text" name="description" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required value="${item?.description || ''}"></div>
+                        <div><label class="block text-sm font-medium">Categoria</label><select name="category" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required>${incomeCategoriesOptions}</select></div>
+                        <div><label class="block text-sm font-medium">Conta de Destino</label><select name="destinationAccount" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required>${accountsOptions}</select></div>
+                        <div><label class="block text-sm font-medium">Valor</label><input type="number" name="amount" step="0.01" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required value="${item?.amount || ''}"></div>
+                    `;
+                    break;
+                case 'fixedExpenses':
+                    title = item ? 'Editar Despesa Fixa' : 'Adicionar Despesa Fixa';
+                    formContent = `
+                        <div><label class="block text-sm font-medium">Data de Vencimento</label><input type="date" name="dueDate" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required value="${item?.dueDate || new Date().toISOString().split('T')[0]}"></div>
+                        <div><label class="block text-sm font-medium">Descrição</label><input type="text" name="description" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required value="${item?.description || ''}"></div>
+                        <div><label class="block text-sm font-medium">Categoria</label><select name="category" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required>${expenseCategoriesOptions}</select></div>
+                        <div><label class="block text-sm font-medium">Conta de Débito</label><select name="debitAccount" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required>${accountsOptions}</select></div>
+                        <div><label class="block text-sm font-medium">Valor</label><input type="number" name="amount" step="0.01" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required value="${item?.amount || ''}"></div>
+                        <div><label class="block text-sm font-medium">Status</label><select name="status" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required><option value="A Pagar">A Pagar</option><option value="Pago">Pago</option></select></div>
+                    `;
+                    break;
+                 case 'variableExpenses':
+                    title = item ? 'Editar Despesa Variável' : 'Adicionar Despesa Variável';
+                    formContent = `
+                        <div><label class="block text-sm font-medium">Data</label><input type="date" name="date" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required value="${item?.date || new Date().toISOString().split('T')[0]}"></div>
+                        <div><label class="block text-sm font-medium">Descrição</label><input type="text" name="description" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required value="${item?.description || ''}"></div>
+                        <div><label class="block text-sm font-medium">Categoria</label><select name="category" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required>${expenseCategoriesOptions}</select></div>
+                        <div><label class="block text-sm font-medium">Valor</label><input type="number" name="amount" step="0.01" class="mt-1 w-full border-gray-300 rounded-md shadow-sm" required value="${item?.amount || ''}"></div>
+                    `;
+                    break;
+            }
+
+            document.getElementById('modal-title').textContent = title;
+            modalForm.innerHTML = formContent;
+            
+            if (item) {
+                Object.keys(item).forEach(key => {
+                    const input = modalForm.elements[key];
+                    if (input) input.value = item[key];
+                });
+            }
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+        
+        const confirmModal = document.getElementById('confirm-modal');
+        function openConfirmModal(message, onConfirm) {
+            document.getElementById('confirm-message').textContent = message;
+            confirmModal.classList.remove('hidden');
+            confirmModal.classList.add('flex');
+            
+            const okBtn = document.getElementById('confirm-ok-btn');
+            const cancelBtn = document.getElementById('confirm-cancel-btn');
+
+            const confirmHandler = () => { onConfirm(); closeConfirmModal(); cleanup(); };
+            const cancelHandler = () => { closeConfirmModal(); cleanup(); };
+            const cleanup = () => {
+                 okBtn.removeEventListener('click', confirmHandler);
+                 cancelBtn.removeEventListener('click', cancelHandler);
+            };
+
+            okBtn.addEventListener('click', confirmHandler);
+            cancelBtn.addEventListener('click', cancelHandler);
+        }
+
+        function closeConfirmModal() {
+            confirmModal.classList.add('hidden');
+            confirmModal.classList.remove('flex');
+        }
+
+        // --- Utilitários ---
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+        }
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const [year, month, day] = dateString.split('-');
+            return `${day}/${month}/${year}`;
+        }
+        
+        function setupDashboardFilters() {
+            const monthSelect = document.getElementById('dashboard-month');
+            const yearSelect = document.getElementById('dashboard-year');
+            const currentMonth = new Date().getMonth() + 1;
+            const currentYear = new Date().getFullYear();
+            
+            const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            monthSelect.innerHTML = months.map((m, i) => `<option value="${i+1}">${m}</option>`).join('');
+            monthSelect.value = currentMonth;
+
+            let yearsHTML = '';
+            for (let y = currentYear + 1; y >= currentYear - 5; y--) yearsHTML += `<option value="${y}">${y}</option>`;
+            yearSelect.innerHTML = yearsHTML;
+            yearSelect.value = currentYear;
+            
+            monthSelect.addEventListener('change', renderDashboard);
+            yearSelect.addEventListener('change', renderDashboard);
+        }
+        
+        // --- Event Listeners ---
+        function setupEventListeners() {
+            // Navegação por Abas
+            document.getElementById('tabs-container').addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+                
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.add('hidden'));
+                const tabName = button.dataset.tab;
+                document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+
+                if (tabName === 'dashboard') renderDashboard();
+            });
+            
+            // Botões de Adicionar
+            document.getElementById('add-receita-btn').addEventListener('click', () => openFormModal('income'));
+            document.getElementById('add-despesa-fixa-btn').addEventListener('click', () => openFormModal('fixedExpenses'));
+            document.getElementById('add-despesa-variavel-btn').addEventListener('click', () => openFormModal('variableExpenses'));
+            
+            // Modal
+            document.getElementById('modal-cancel-btn').addEventListener('click', closeModal);
+            modalForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const formData = new FormData(e.target);
+                const data = Object.fromEntries(formData.entries());
+                
+                if(data.amount) data.amount = parseFloat(data.amount);
+                
+                const type = e.target.dataset.type;
+                const id = e.target.dataset.id;
+                if(id) data.id = id;
+
+                saveItem(type, data);
+            });
+
+            // Botões de Gerenciamento de Dados
+            document.getElementById('export-data-btn').addEventListener('click', () => {
+                const dataStr = JSON.stringify(state, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = 'dados_financeiros.json';
+            
+                let linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+            });
+
+            document.getElementById('delete-all-data-btn').addEventListener('click', () => {
+                openConfirmModal('Isso apagará TODOS os seus dados salvos neste navegador. Esta ação não pode ser desfeita. Deseja continuar?', () => {
+                    localStorage.removeItem(DB_KEY);
+                    loadStateFromStorage(); // Recarrega o estado padrão
+                    updateAndSave();
+                });
+            });
+
+        }
+        
+        function attachSettingsEventListeners() {
+            const container = document.getElementById('configuracoes-tab');
+            
+            container.querySelectorAll('.add-setting-item-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const type = e.target.dataset.type;
+                    const input = document.getElementById(`new-${type}-input`);
+                    const value = input.value.trim();
+                    if (value && !state.settings[type].includes(value)) {
+                        const newList = [...state.settings[type], value];
+                        updateSettingsList(type, newList);
+                        input.value = '';
+                    }
+                });
+            });
+
+            container.querySelectorAll('.delete-setting-item-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const targetBtn = e.target.closest('button');
+                    const type = targetBtn.dataset.type;
+                    const itemToDelete = targetBtn.dataset.item;
+                    const newList = state.settings[type].filter(item => item !== itemToDelete);
+                    updateSettingsList(type, newList);
+                });
+            });
+        }
+
+        // --- Ponto de Entrada ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStateFromStorage();
+            setupEventListeners();
+            setupDashboardFilters();
+            renderAll();
+            
+            // Iniciar na aba do dashboard
+            document.querySelector('[data-tab="dashboard"]').click();
+        });
+
+    </script>
+</body>
+</html>
